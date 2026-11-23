@@ -36,6 +36,11 @@
         "test": "vendor/bin/phpunit",
         "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
     },
+    "extra": {
+        "branch-alias": {
+            "dev-illi": "3.9.x-dev"
+        }
+    },
     "config": {
         "sort-packages": true
     }
