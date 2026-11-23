@@ -7,11 +7,18 @@ use Spatie\DataTransferObject\DataTransferObject;
 
 class ValidationException extends Exception
 {
-    public function __construct(
-        public DataTransferObject $dataTransferObject,
-        public array $validationErrors,
-    ) {
-        $className = $dataTransferObject::class;
+    /** @var DataTransferObject */
+    public $dataTransferObject;
+
+    /** @var array */
+    public $validationErrors;
+
+    public function __construct(DataTransferObject $dataTransferObject, array $validationErrors)
+    {
+        $this->dataTransferObject = $dataTransferObject;
+        $this->validationErrors = $validationErrors;
+
+        $className = get_class($dataTransferObject);
 
         $messages = [];
 

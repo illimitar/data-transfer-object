@@ -4,7 +4,9 @@ namespace Spatie\DataTransferObject\Tests\Dummy;
 
 use Spatie\DataTransferObject\DataTransferObject;
 
-class WithDefaultValueDto extends DataTransferObject
+class Estrito extends DataTransferObject
 {
-    public string $name = 'John';
+    public static $__strict = true;
+
+    public $nome = null;
 }

@@ -7,12 +7,15 @@ use Spatie\DataTransferObject\DataTransferObject;
 
 class DataTransferObjectCaster implements Caster
 {
-    public function __construct(
-        private array $classNames
-    ) {
+    /** @var array */
+    private $classNames;
+
+    public function __construct(array $classNames)
+    {
+        $this->classNames = $classNames;
     }
 
-    public function cast(mixed $value): DataTransferObject
+    public function cast($value): DataTransferObject
     {
         foreach ($this->classNames as $className) {
             if ($value instanceof $className) {

@@ -2,30 +2,27 @@
 
 namespace Spatie\DataTransferObject\Validation;
 
-use JetBrains\PhpStorm\Immutable;
-
 class ValidationResult
 {
-    public function __construct(
-        #[Immutable]
-        public bool $isValid,
-        #[Immutable]
-        public ?string $message = null
-    ) {
+    /** @var bool */
+    public $isValid;
+
+    /** @var string|null */
+    public $message;
+
+    public function __construct(bool $isValid, ?string $message = null)
+    {
+        $this->isValid = $isValid;
+        $this->message = $message;
     }
 
     public static function valid(): self
     {
-        return new self(
-            isValid: true,
-        );
+        return new self(true);
     }
 
     public static function invalid(string $message): self
     {
-        return new self(
-            isValid: false,
-            message: $message,
-        );
+        return new self(false, $message);
     }
 }

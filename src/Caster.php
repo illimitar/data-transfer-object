@@ -4,5 +4,10 @@ namespace Spatie\DataTransferObject;
 
 interface Caster
 {
-    public function cast(mixed $value): mixed;
+    /**
+     * @param mixed $value
+     *
+     * @return mixed
+     */
+    public function cast($value);
 }

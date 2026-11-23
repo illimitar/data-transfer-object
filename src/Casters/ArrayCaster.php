@@ -9,27 +9,30 @@ use Traversable;
 
 class ArrayCaster implements Caster
 {
-    public function __construct(
-        private array $types,
-        private string $itemType,
-    ) {
+    /** @var array */
+    private $types;
+
+    /** @var string */
+    private $itemType;
+
+    public function __construct(array $types, string $itemType)
+    {
+        $this->types = $types;
+        $this->itemType = $itemType;
     }
 
-    public function cast(mixed $value): array | ArrayAccess
+    /**
+     * @return array|ArrayAccess
+     */
+    public function cast($value)
     {
         foreach ($this->types as $type) {
             if ($type == 'array') {
-                return $this->mapInto(
-                    destination: [],
-                    items: $value
-                );
+                return $this->mapInto([], $value);
             }
 
             if (is_subclass_of($type, ArrayAccess::class)) {
-                return $this->mapInto(
-                    destination: new $type(),
-                    items: $value
-                );
+                return $this->mapInto(new $type(), $value);
             }
         }
 
@@ -38,7 +41,13 @@ class ArrayCaster implements Caster
         );
     }
 
-    private function mapInto(array | ArrayAccess $destination, mixed $items): array | ArrayAccess
+    /**
+     * @param array|ArrayAccess $destination
+     * @param mixed $items
+     *
+     * @return array|ArrayAccess
+     */
+    private function mapInto($destination, $items)
     {
         if ($destination instanceof ArrayAccess && ! is_subclass_of($destination, Traversable::class)) {
             throw new LogicException(
@@ -53,14 +62,14 @@ class ArrayCaster implements Caster
         return $destination;
     }
 
-    private function castItem(mixed $data)
+    private function castItem($data)
     {
         if ($data instanceof $this->itemType) {
             return $data;
         }
 
         if (is_array($data)) {
-            return new $this->itemType(...$data);
+            return new $this->itemType($data);
         }
 
         throw new LogicException(

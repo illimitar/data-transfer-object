@@ -1,6 +1,6 @@
 {
     "name": "spatie/data-transfer-object",
-    "description": "Data transfer objects with batteries included",
+    "description": "Data transfer objects with batteries included (fork illimitar compativel com PHP 7.3)",
     "keywords": [
         "spatie",
         "data-transfer-object"
@@ -16,13 +16,11 @@
         }
     ],
     "require": {
-        "php": "^8.0"
+        "php": "^7.3 || ^8.0",
+        "symfony/polyfill-php80": "^1.28"
     },
     "require-dev": {
-        "illuminate/collections": "^8.36",
-        "larapack/dd": "^1.1",
-        "phpunit/phpunit": "^9.5.5",
-        "jetbrains/phpstorm-attributes": "^1.0"
+        "phpunit/phpunit": "^9.5.5"
     },
     "autoload": {
         "psr-4": {

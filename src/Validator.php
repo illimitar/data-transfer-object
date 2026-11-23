@@ -6,5 +6,8 @@ use Spatie\DataTransferObject\Validation\ValidationResult;
 
 interface Validator
 {
-    public function validate(mixed $value): ValidationResult;
+    /**
+     * @param mixed $value
+     */
+    public function validate($value): ValidationResult;
 }

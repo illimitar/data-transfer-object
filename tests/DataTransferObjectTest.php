@@ -2,242 +2,160 @@
 
 namespace Spatie\DataTransferObject\Tests;
 
-use Spatie\DataTransferObject\Tests\Dummy\BasicDto;
-use Spatie\DataTransferObject\Tests\Dummy\ComplexDto;
-use Spatie\DataTransferObject\Tests\Dummy\ComplexDtoWithCastedAttributeHavingCast;
-use Spatie\DataTransferObject\Tests\Dummy\ComplexDtoWithNullableProperty;
-use Spatie\DataTransferObject\Tests\Dummy\ComplexDtoWithParent;
-use Spatie\DataTransferObject\Tests\Dummy\ComplexDtoWithSelf;
-use Spatie\DataTransferObject\Tests\Dummy\ComplexStrictDto;
-use Spatie\DataTransferObject\Tests\Dummy\WithDefaultValueDto;
+use Spatie\DataTransferObject\Exceptions\InvalidCasterClass;
+use Spatie\DataTransferObject\Exceptions\UnknownProperties;
+use Spatie\DataTransferObject\Exceptions\ValidationException;
+use Spatie\DataTransferObject\Tests\Dummy\Endereco;
+use Spatie\DataTransferObject\Tests\Dummy\Estrito;
+use Spatie\DataTransferObject\Tests\Dummy\Pessoa;
+use Spatie\DataTransferObject\Tests\Dummy\Validado;
+use Spatie\DataTransferObject\DataTransferObject;
 
 class DataTransferObjectTest extends TestCase
 {
-    /** @test */
-    public function array_of()
+    public function test_usa_o_nome_da_propriedade()
     {
-        $list = BasicDto::arrayOf([
-            ['name' => 'a'],
-            ['name' => 'b'],
-        ]);
+        $pessoa = new Pessoa(['nome' => 'Ana', 'idade' => 30]);
 
-        $this->assertCount(2, $list);
-
-        $this->assertEquals('a', $list[0]->name);
-        $this->assertEquals('b', $list[1]->name);
+        $this->assertSame('Ana', $pessoa->nome);
+        $this->assertSame(30, $pessoa->idade);
     }
 
-    /** @test */
-    public function create_with_nested_dto()
+    public function test_map_from_le_a_chave_de_origem()
     {
-        $dto = new ComplexDto([
-            'name' => 'a',
-            'other' => [
-                'name' => 'b',
-            ],
-        ]);
+        $pessoa = new Pessoa(['xNome' => 'Ana']);
 
-        $this->assertEquals('a', $dto->name);
-        $this->assertEquals('b', $dto->other->name);
+        $this->assertSame('Ana', $pessoa->nome);
     }
 
-    /** @test */
-    public function create_with_nested_dto_already_casted()
+    public function test_map_from_aceita_ponto_e_chave_com_arroba()
     {
-        $dto = new ComplexDto([
-            'name' => 'a',
-            'other' => new BasicDto([
-                'name' => 'b',
-            ]),
-        ]);
+        $pessoa = new Pessoa(['@attributes' => ['versao' => '1.01']]);
 
-        $this->assertEquals('a', $dto->name);
-        $this->assertEquals('b', $dto->other->name);
+        $this->assertSame('1.01', $pessoa->versao);
     }
 
-    /** @test */
-    public function create_strict_with_nested_dto()
+    public function test_valor_padrao_quando_a_chave_nao_vem()
     {
-        $dto = new ComplexStrictDto([
-            'name' => 'a',
-            'other' => [
-                'name' => 'b',
-            ],
-        ]);
+        $pessoa = new Pessoa([]);
 
-        $this->assertEquals('a', $dto->name);
-        $this->assertEquals('b', $dto->other->name);
+        $this->assertNull($pessoa->nome);
+        $this->assertSame([], $pessoa->filiais);
     }
 
-    /** @test */
-    public function create_strict_with_nested_dto_already_casted()
+    public function test_cria_dto_aninhado_a_partir_de_array()
     {
-        $dto = new ComplexStrictDto([
-            'name' => 'a',
-            'other' => new BasicDto([
-                'name' => 'b',
-            ]),
-        ]);
+        $pessoa = new Pessoa(['end' => ['xLgr' => 'Rua A', 'cep' => '60000000']]);
 
-        $this->assertEquals('a', $dto->name);
-        $this->assertEquals('b', $dto->other->name);
+        $this->assertInstanceOf(Endereco::class, $pessoa->endereco);
+        $this->assertSame('Rua A', $pessoa->endereco->rua);
+        $this->assertSame('60000000', $pessoa->endereco->cep);
     }
 
-    /** @test */
-    public function create_with_null_nullable_nested_dto()
+    public function test_mantem_dto_aninhado_ja_criado()
     {
-        $dto = new ComplexDtoWithNullableProperty([
-            'name' => 'a',
-            'other' => null,
-        ]);
+        $endereco = new Endereco(['cep' => '1']);
+        $pessoa = new Pessoa(['endereco' => $endereco]);
 
-        $this->assertEquals('a', $dto->name);
-        $this->assertNull($dto->other);
+        $this->assertSame($endereco, $pessoa->endereco);
     }
 
-    /** @test */
-    public function create_with_nested_dto_having_cast()
+    public function test_caster_recebe_tipos_e_argumentos_posicionais()
     {
-        $dto = new ComplexDtoWithCastedAttributeHavingCast([
-            'name' => 'a',
-            'other' => [
-                'name' => 'b',
-                'object' => [
-                    'name' => 'c',
-                ],
-            ],
-        ]);
+        $pessoa = new Pessoa(['tipo' => 'abc']);
 
-        $this->assertEquals('a', $dto->name);
-        $this->assertEquals('b', $dto->other->name);
-        $this->assertEquals('c', $dto->other->object->name);
+        $this->assertSame('ABC!', $pessoa->tipo);
     }
 
-    /** @test */
-    public function all_with_nested_dto()
+    public function test_caster_nao_roda_com_valor_nulo()
     {
-        $array = [
-            'name' => 'a',
-            'other' => [
-                'name' => 'b',
-            ],
-        ];
+        $pessoa = new Pessoa(['tipo' => null]);
 
-        $dto = new ComplexDto($array);
-
-        $all = $dto->all();
-
-        $this->assertCount(2, $all);
-        $this->assertEquals('a', $all['name']);
-        $this->assertEquals('b', $all['other']->name);
+        $this->assertNull($pessoa->tipo);
     }
 
-    /** @test */
-    public function to_array_with_nested_dto()
+    public function test_array_caster_cria_lista_de_dtos()
     {
-        $array = [
-            'name' => 'a',
-            'other' => [
-                'name' => 'b',
-            ],
-        ];
+        $pessoa = new Pessoa(['filiais' => [['cep' => '1'], ['cep' => '2']]]);
 
-        $dto = new ComplexDto($array);
-
-        $this->assertEquals($array, $dto->toArray());
+        $this->assertCount(2, $pessoa->filiais);
+        $this->assertInstanceOf(Endereco::class, $pessoa->filiais[1]);
+        $this->assertSame('2', $pessoa->filiais[1]->cep);
     }
 
-    /** @test */
-    public function to_array_with_only()
+    public function test_caster_invalido_gera_erro()
     {
-        $array = [
-            'name' => 'a',
-            'other' => [
-                'name' => 'b',
-            ],
-        ];
+        $this->expectException(InvalidCasterClass::class);
 
-        $dto = new ComplexDto($array);
+        (new class(['x' => 1]) extends DataTransferObject {
+            public static $__castWith = ['x' => ['caster' => \stdClass::class]];
 
-        $this->assertEquals(['name' => 'a'], $dto->only('name')->toArray());
+            public $x = null;
+        });
     }
 
-    /** @test */
-    public function to_array_with_except()
+    public function test_strict_recusa_chave_desconhecida()
     {
-        $array = [
-            'name' => 'a',
-            'other' => [
-                'name' => 'b',
-            ],
-        ];
+        $this->expectException(UnknownProperties::class);
 
-        $dto = new ComplexDto($array);
-
-        $this->assertEquals(['other' => ['name' => 'b']], $dto->except('name')->toArray());
+        new Estrito(['nome' => 'Ana', 'extra' => 1]);
     }
 
-    /** @test */
-    public function create_with_default_value()
+    public function test_sem_strict_ignora_chave_desconhecida()
     {
-        $dto = new WithDefaultValueDto();
+        $pessoa = new Pessoa(['nome' => 'Ana', 'extra' => 1]);
 
-        $this->assertEquals(['name' => 'John'], $dto->toArray());
+        $this->assertSame('Ana', $pessoa->nome);
     }
 
-    /** @test */
-    public function create_with_overriden_default_value()
+    public function test_validador_aceita_valor_valido()
     {
-        $dto = new WithDefaultValueDto(name: 'Doe');
-
-        $this->assertEquals(['name' => 'Doe'], $dto->toArray());
+        $this->assertSame(5, (new Validado(['valor' => 5]))->valor);
     }
 
-    /** @test */
-    public function test_clone()
+    public function test_validador_recusa_valor_invalido()
     {
-        $array = [
-            'name' => 'a',
-            'other' => [
-                'name' => 'b',
-            ],
-        ];
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Deve ser maior que zero.');
 
-        $dto = new ComplexDto($array);
-
-        $clone = $dto->clone(other: ['name' => 'a']);
-
-        $this->assertEquals('a', $clone->name);
-        $this->assertEquals('a', $clone->other->name);
+        new Validado(['valor' => 0]);
     }
 
-    /** @test */
-    public function create_with_nested_self()
+    public function test_to_array_usa_map_to_e_converte_aninhados()
     {
-        $dto = new ComplexDtoWithSelf([
-            'name' => 'a',
-            'other' => [
-                'name' => 'b',
-            ],
-        ]);
+        $pessoa = new Pessoa(['xNome' => 'Ana', 'end' => ['xLgr' => 'Rua A']]);
 
-        $this->assertEquals('a', $dto->name);
-        $this->assertEquals('b', $dto->other->name);
-        $this->assertNull($dto->other->other);
+        $array = $pessoa->toArray();
+
+        $this->assertSame('Ana', $array['name']);
+        $this->assertSame('Rua A', $array['endereco']['rua']);
+        $this->assertArrayNotHasKey('nome', $array);
     }
 
-    /** @test */
-    public function create_with_nested_parent()
+    public function test_only_e_except()
     {
-        $dto = new ComplexDtoWithParent([
-            'name' => 'a',
-            'other' => [
-                'name' => 'b',
-            ],
-        ]);
+        $pessoa = new Pessoa(['nome' => 'Ana', 'idade' => 30]);
 
-        $this->assertEquals('a', $dto->name);
-        $this->assertEquals('b', $dto->other->name);
-        $this->assertNull($dto->other->other);
+        $this->assertSame(['idade' => 30], $pessoa->only('idade')->toArray());
+        $this->assertArrayNotHasKey('idade', $pessoa->except('idade')->toArray());
+        $this->assertSame(30, $pessoa->idade);
+    }
+
+    public function test_clone_troca_valores()
+    {
+        $endereco = new Endereco(['cep' => '1']);
+
+        $copia = $endereco->clone(['cep' => '2']);
+
+        $this->assertSame('2', $copia->cep);
+        $this->assertSame('1', $endereco->cep);
+    }
+
+    public function test_array_of()
+    {
+        $enderecos = Endereco::arrayOf([['cep' => '1'], ['cep' => '2']]);
+
+        $this->assertCount(2, $enderecos);
+        $this->assertSame('2', $enderecos[1]->cep);
     }
 }
